@@ -19,7 +19,7 @@ def fetch_outgoing_transactions(address, limit=5):
     url = (
         f"https://api.etherscan.io/api"
         f"?module=account&action=txlist&address={address}"
-        f"&startblock=0&endblock=99999999&sort=desc&apikey={}"
+        f"&startblock=0&endblock=99999999&sort=desc&apikey={ETHERSCAN_API_KEY}"
     )
     try:
         response = requests.get(url, timeout=10).json()
