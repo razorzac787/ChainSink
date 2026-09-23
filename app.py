@@ -96,7 +96,7 @@ def render_pyvis_graph(nx_graph, output_file="fund_flow_graph.html"):
         directed=True, 
         bgcolor="#111111", 
         font_color="white",
-        cdn_resources="remote"
+        cdn_resources="in_line"
     )
     
     # Import NetworkX graph structure
