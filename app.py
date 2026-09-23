@@ -83,30 +83,44 @@ def build_multihop_graph(seed_address, max_depth=2, branch_limit=3):
 
 def render_pyvis_graph(nx_graph, output_file="fund_flow_graph.html"):
     """Convert NetworkX graph to interactive HTML visualization using PyVis."""
-    net = Network(height="600px", width="100%", directed=True, bgcolor="#111111", font_color="white")
     
-    #Importing NetworkX graph structure
+    # 1. Check if graph contains nodes
+    if len(nx_graph.nodes) == 0:
+        print("[!] Warning: The graph is empty! Check your API key or seed address outgoing transactions.")
+        return
+
+    # 2. Set cdn_resources='remote' to load vis.js directly from the official CDN
+    net = Network(
+        height="600px", 
+        width="100%", 
+        directed=True, 
+        bgcolor="#111111", 
+        font_color="white",
+        cdn_resources="remote"
+    )
+    
+    # Import NetworkX graph structure
     net.from_nx(nx_graph)
     
-    #Customize visual appearance based on node role
+    # Customize visual appearance based on node role
     for node in net.nodes:
         node_id = node["id"]
-        #Add tooltips and truncated labels
+        # Add tooltips and truncated labels
         node["label"] = f"{node_id[:6]}...{node_id[-4:]}"
         node["title"] = f"Full Address: {node_id}"
         
-        #Color coding strategy
+        # Color coding strategy
         if nx_graph.nodes[node_id].get("depth") == 0:
-            node["color"] = "#FF4B4B"  #Red for Seed Victim/Scam
+            node["color"] = "#FF4B4B"  # Red for Seed Victim/Scam
             node["size"] = 25
         else:
-            node["color"] = "#00C0F2"  #Blue for Intermediate Hop Nodes
+            node["color"] = "#00C0F2"  # Blue for Intermediate Hop Nodes
             node["size"] = 15
 
-    #Enable physics engine for drag-and-drop layout
+    # Enable physics engine for drag-and-drop layout
     net.toggle_physics(True)
     net.write_html(output_file)
-    print(f"[✓] Successfully exported interactive graph to: {output_file}")
+    print(f"[✓] Successfully exported interactive graph with {len(nx_graph.nodes)} nodes to: {output_file}")
 
 
 if __name__ == "__main__":
