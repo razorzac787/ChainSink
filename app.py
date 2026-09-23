@@ -2,10 +2,17 @@ import os
 import requests
 import networkx as nx
 from pyvis.network import Network
+from dotenv import load_dotenv
 
-# --- CONFIGURATION ---
-ETHERSCAN_API_KEY = "YOUR_ETHERSCAN_API_KEY_HERE"  # Replace with your key
-SEED_SCAM_ADDRESS = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" # Example seed address (vitalik.eth for testing)
+load_dotenv()
+
+ETHERSCAN_API_KEY = os.getenv("ETHERSCAN_API_KEY")
+
+if not ETHERSCAN_API_KEY:
+    raise ValueError("Missing ETHERSCAN_API_KEY. Please set it in your .env file.")
+
+
+SEED_SCAM_ADDRESS = "0xe85ca9f88558ca4c5796bea5a04f66b8f8162ae8" # Example seed address (vitalik.eth for testing)
 
 def fetch_outgoing_transactions(address, limit=5):
     """Fetch recent outgoing ETH transactions from Etherscan API."""
