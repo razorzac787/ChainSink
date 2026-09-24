@@ -10,6 +10,14 @@ load_dotenv()
 ETHERSCAN_API_KEY = os.getenv("ETHERSCAN_API_KEY")
 SEED_SCAM_ADDRESS = "0x5026F006B85729a8b14553FAe312930261E1b2F8"  # Real Kyber Exploit Address
 
+KNOWN_TERMINAL_NODES = {
+    "0x28c6c06298d514db089934071355e5743bf21d60": "Binance 14",
+    "0x0d0707963952f2a572d1264c7676757b85040f7b": "Kraken Hot Wallet",
+    "0x47ac0fb3f2d84898e4d9e7b4dab3c24507a6d503": "Binance 8",
+    "0xd8da6bf26964af9d7eed9e03e53415d37aa96045": "Vitalik",
+    "0xd90e2f925da726b50c4ed8d0fb90ad053324f31b": "Tornado.Cash Router"
+}
+
 def fetch_outgoing_transactions(address, limit=5):
     """Fetch recent outgoing ETH transactions from Etherscan API."""
     if not ETHERSCAN_API_KEY or ETHERSCAN_API_KEY == "your_actual_etherscan_api_key_here":
