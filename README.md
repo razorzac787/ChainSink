@@ -40,27 +40,27 @@ Social engineering attacks, phishing, and advance fee fraud schemes are key chal
 [ Visual Analytics Dashboard ] Streamlit + PyVis Real-Time Fund-Flow Inspection
 ```
 
-## Master Execution Roadmap
+## Project Roadmap
 
 ### Phase 1: Mid-Sem Milestones (Immediate Scope)
 
-* \[x\] **Automate Scam Ingestion:** OSINT data ingestion pipeline setup for victim-reported seed addresses.
-* \[x\] **Multi-Hop Graph Traversal Engine:** Directed graph generation (`NetworkX`) querying block explorer APIs up to $N$-hops.
-* \[x\] **Visual Analytics Prototype:** Initial PyVis interactive rendering for immediate demo/slides export.
+* **Automate Scam Ingestion:** OSINT data ingestion pipeline setup for victim-reported seed addresses.
+* **Multi-Hop Graph Traversal Engine:** Directed graph generation (`NetworkX`) querying block explorer APIs up to $N$-hops.
+* **Visual Analytics Prototype:** Initial PyVis interactive rendering for immediate demo/slides export.
 
 ### Phase 2: Post Mid-Sem Development
 
-* \[ \] **Deterministic Clustering:**
+* **Deterministic Clustering:**
   * Multi-input co-spending aggregation.
   * Intermediate deposit address reuse detection.
-* \[ \] **Exchange Attribution Engine:**
+* **Exchange Attribution Engine:**
   * Terminal sink node mapping against exchange wallet labels.
   * Distance proximity calculations ($D(v, E)$).
 
 ### Phase 3: End-Sem Final Deliverables
 
-* \[ \] **Interactive Dashboard:** Unifying graph generation, depth controls, and node analytics into Streamlit.
-* \[ \] **Performance Validation & Backtesting:** Evaluating recall and processing runtime across ground-truth scam datasets.
+* **Interactive Dashboard:** Unifying graph generation, depth controls, and node analytics into Streamlit.
+* **Performance Validation & Backtesting:** Evaluating recall and processing runtime across ground-truth scam datasets.
 
 ## Tech Stack
 
