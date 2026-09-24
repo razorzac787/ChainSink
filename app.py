@@ -10,7 +10,7 @@ load_dotenv()
 ETHERSCAN_API_KEY = os.getenv("ETHERSCAN_API_KEY")
 SEED_SCAM_ADDRESS = "0x5026F006B85729a8b14553FAe312930261E1b2F8"  # Real Kyber Exploit Address
 
-def fetch_outgoing_transactions(address, limit=5):
+def fetch_outgoing_transactions(address):
     """Fetch recent outgoing ETH transactions from Etherscan API."""
     if not ETHERSCAN_API_KEY or ETHERSCAN_API_KEY == "your_actual_etherscan_api_key_here":
         print("[!] Warning: Missing valid ETHERSCAN_API_KEY in .env file!")
