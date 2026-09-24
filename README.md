@@ -55,7 +55,7 @@ Social engineering attacks, phishing, and advance fee fraud schemes are key chal
   * Intermediate deposit address reuse detection.
 * **Exchange Attribution Engine:**
   * Terminal sink node mapping against exchange wallet labels.
-  * Distance proximity calculations ($D(v, E)$).
+  * Distance proximity calculations (D(v, E)).
 
 ### Phase 3: End-Sem Final Deliverables
 
