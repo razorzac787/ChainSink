@@ -48,35 +48,76 @@ def fetch_outgoing_transactions(address, limit=5):
         print(f"[!] API Request Error: {e}")
         return []
 
-def build_multihop_graph(seed_address, max_depth=2, branch_limit=3):
-    """BFS Traversal Engine using NetworkX."""
+def calculate_dynamic_limits(tx_value, current_graph_size):
+    """
+    Dynamically adjusts branch limits and depth allocations upon each insertion.
+    - Higher value transactions earn higher max depth limits.
+    - As graph size grows, branch limit tightens to prevent combinatorial explosion.
+    """
+    # 1. Dynamic Depth Allocation based on Transaction Value
+    if tx_value >= 10.0:
+        allocated_max_depth = 4   # High-value path: explore deep
+    elif tx_value >= 1.0:
+        allocated_max_depth = 3   # Medium-value path
+    else:
+        allocated_max_depth = 2   # Low-value path: cap early
+
+    # 2. Dynamic Branch Limit based on current Graph Node insertions
+    if current_graph_size < 10:
+        dynamic_branch_limit = 5  # Wide search during early graph discovery
+    elif current_graph_size < 30:
+        dynamic_branch_limit = 3  # Moderate branching
+    else:
+        dynamic_branch_limit = 2  # Strict branching when graph gets dense
+
+    return allocated_max_depth, dynamic_branch_limit
+
+
+def build_multihop_graph(seed_address, initial_max_depth=3):
+    """BFS Traversal Engine with Dynamic Depth and Branch Scaling on Insertions."""
     G = nx.DiGraph()
-    queue = [(seed_address, 0)]
+    # Queue stores: (address, current_depth, path_value, dynamic_max_depth_limit)
+    queue = [(seed_address, 0, 1000.0, initial_max_depth)]
     visited = set()
 
-    print(f"[+] Starting Multi-Hop Traversal for Seed: {seed_address}")
+    print(f"[+] Starting Dynamic Multi-Hop Traversal for Seed: {seed_address}")
 
     while queue:
-        curr_addr, depth = queue.pop(0)
-        if depth >= max_depth or curr_addr in visited:
+        curr_addr, depth, incoming_val, current_max_depth = queue.pop(0)
+        
+        if depth >= current_max_depth or curr_addr in visited:
             continue
             
         visited.add(curr_addr)
-        print(f" -> Tracing Hop {depth}: {curr_addr[:10]}...")
+        print(f" -> Tracing Hop {depth}/{current_max_depth} for {curr_addr[:10]}... (Incoming Val: {incoming_val:.2f} ETH)")
         
-        txs = fetch_outgoing_transactions(curr_addr, limit=branch_limit)
+        # Fetch outgoing transactions
+        all_txs = fetch_outgoing_transactions(curr_addr)
         
-        for tx in txs:
+        # Sort transactions by value descending so top flows get processed first
+        all_txs.sort(key=lambda x: x["value"], reverse=True)
+
+        # Get dynamic branch limit based on current total inserted nodes in graph
+        _, dynamic_branch_limit = calculate_dynamic_limits(incoming_val, len(G.nodes))
+        
+        # Filter down to top N dynamic branches
+        selected_txs = all_txs[:dynamic_branch_limit]
+
+        for tx in selected_txs:
             src, dst, val = tx["from"], tx["to"], tx["value"]
+            
+            # Calculate dynamic max depth for this specific outgoing edge
+            edge_max_depth, _ = calculate_dynamic_limits(val, len(G.nodes))
+
             G.add_node(src, depth=depth)
             G.add_node(dst, depth=depth + 1)
             G.add_edge(src, dst, weight=val)
 
-            if dst not in visited and (depth + 1) < max_depth:
-                queue.append((dst, depth + 1))
+            # Insert into queue with its dynamically assigned depth limit
+            if dst not in visited and (depth + 1) < edge_max_depth:
+                queue.append((dst, depth + 1, val, edge_max_depth))
 
-    # --- FALLBACK PROTECTION ---
-    # If API returned 0 transactions, generate a sample mock graph so your HTML is never blank!
+    # Fallback protection if API returns no nodes
     if len(G.nodes) == 0:
         print("[!] Live API returned 0 transfers. Injecting sample multi-hop nodes for demo preview...")
         G.add_node(seed_address, depth=0)
