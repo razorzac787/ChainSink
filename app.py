@@ -192,5 +192,5 @@ def render_standalone_html(nx_graph, output_file="fund_flow_graph.html"):
     print(f"[✓] Successfully exported interactive graph with {len(nx_graph.nodes)} nodes to: {output_file}")
 
 if __name__ == "__main__":
-    graph = build_multihop_graph(SEED_SCAM_ADDRESS, max_depth=2, branch_limit=3)
+    graph = build_multihop_graph(SEED_SCAM_ADDRESS)
     render_standalone_html(graph, "fund_flow_graph.html")
