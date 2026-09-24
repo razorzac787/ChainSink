@@ -48,32 +48,91 @@ def fetch_outgoing_transactions(address, limit=5):
         print(f"[!] API Request Error: {e}")
         return []
 
-def build_multihop_graph(seed_address, max_depth=2, branch_limit=3):
-    """BFS Traversal Engine using NetworkX."""
+def build_multihop_graph(seed_address, max_depth=3, min_decay_ratio=0.05, min_eth_threshold=0.5):
+    """
+    Heuristic Value-Decay Tracing Engine (Paper-aligned).
+    
+    :param seed_address: Target hack/scam wallet address
+    :param max_depth: Max hops allowed along the peel chain
+    :param min_decay_ratio: Minimum ratio of outbound transfer value relative to inflow
+    :param min_eth_threshold: Absolute ETH threshold to filter out low-value dust
+    """
     G = nx.DiGraph()
-    queue = [(seed_address, 0)]
+    seed_address = seed_address.lower()
+    
+    # Queue item: (current_address, current_depth, tracked_inflow_value)
+    # Start with initial high seed budget (e.g., float('inf') so first hop isn't pruned)
+    queue = [(seed_address, 0, float('inf'))]
     visited = set()
 
-    print(f"[+] Starting Multi-Hop Traversal for Seed: {seed_address}")
+    print(f"[+] Starting Heuristic Value-Decay Traversal for Seed: {seed_address}")
 
     while queue:
-        curr_addr, depth = queue.pop(0)
+        curr_addr, depth, in_val = queue.pop(0)
+        
         if depth >= max_depth or curr_addr in visited:
             continue
             
         visited.add(curr_addr)
-        print(f" -> Tracing Hop {depth}: {curr_addr[:10]}...")
         
-        txs = fetch_outgoing_transactions(curr_addr, limit=branch_limit)
+        # Check if node is a known CEX/Terminal Node
+        is_terminal = curr_addr in KNOWN_TERMINAL_NODES
+        label_name = KNOWN_TERMINAL_NODES.get(curr_addr, "Laundering Node")
+        
+        G.add_node(curr_addr, depth=depth, is_terminal=is_terminal, label=label_name)
+        
+        # Stop tracing downstream if terminal exchange node is reached
+        if is_terminal and curr_addr != seed_address:
+            print(f" [★] Terminal CEX/Mixer Reached at Hop {depth}: {label_name} ({curr_addr[:10]}...)")
+            continue
+
+        print(f" -> Tracing Hop {depth}: {curr_addr[:10]}...")
+        txs = fetch_outgoing_transactions(curr_addr)
+        
+        if not txs:
+            continue
+
+        # Sort outgoing transactions by value (highest flow first)
+        txs.sort(key=lambda x: x["value"], reverse=True)
         
         for tx in txs:
             src, dst, val = tx["from"], tx["to"], tx["value"]
-            G.add_node(src, depth=depth)
-            G.add_node(dst, depth=depth + 1)
-            G.add_edge(src, dst, weight=val)
+            
+            # --- HEURISTIC VALUE-DECAY RULES ---
+            # 1. Absolute Value Check: Prune low-value dust transfers
+            if val < min_eth_threshold:
+                continue
+                
+            # 2. Ratio Decay Check: Ensure outbound transfer carries significant fraction of inflow
+            decay_ratio = val / in_val if in_val != float('inf') else 1.0
+            if decay_ratio < min_decay_ratio and val < 5.0:  # Allow bypass if absolute value > 5 ETH
+                continue
 
+            # Add edge and target node
+            is_dst_terminal = dst in KNOWN_TERMINAL_NODES
+            dst_label = KNOWN_TERMINAL_NODES.get(dst, f"Hop {depth + 1}")
+            
+            G.add_node(dst, depth=depth + 1, is_terminal=is_dst_terminal, label=dst_label)
+            G.add_edge(src, dst, weight=val, tx_hash=tx["hash"])
+
+            # Queue valid peel paths for further depth expansion
             if dst not in visited and (depth + 1) < max_depth:
-                queue.append((dst, depth + 1))
+                queue.append((dst, depth + 1, val))
+
+    # --- FALLBACK PROTECTION FOR DEMO ---
+    if len(G.nodes) == 0:
+        print("[!] Live API returned 0 matching transfers. Injecting heuristic sample preview...")
+        G.add_node(seed_address, depth=0, is_terminal=False, label="Kyber Exploit")
+        mock_hop1 = "0x7a250d5630b4cf539739df2c5dacb4c659f2488d"
+        mock_cex = "0x28c6c06298d514db089934071355e5743bf21d60"
+        
+        G.add_node(mock_hop1, depth=1, is_terminal=False, label="Peel Chain Intermediate")
+        G.add_node(mock_cex, depth=2, is_terminal=True, label="Binance Hot Wallet")
+        
+        G.add_edge(seed_address, mock_hop1, weight=50.0)
+        G.add_edge(mock_hop1, mock_cex, weight=48.5)
+
+    return G
 
     # --- FALLBACK PROTECTION ---
     # If API returned 0 transactions, generate a sample mock graph so your HTML is never blank!
