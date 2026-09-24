@@ -18,43 +18,48 @@ KNOWN_TERMINAL_NODES = {
     "0xd90e2f925da726b50c4ed8d0fb90ad053324f31b": "Tornado.Cash Router"
 }
 
-def fetch_outgoing_transactions(address, limit=5):
-    """Fetch recent outgoing ETH transactions from Etherscan API."""
+def fetch_outgoing_transactions(address):
+    """Fetch direct ETH, internal contract calls, and ERC-20 token transfers."""
     if not ETHERSCAN_API_KEY or ETHERSCAN_API_KEY == "your_actual_etherscan_api_key_here":
         print("[!] Warning: Missing valid ETHERSCAN_API_KEY in .env file!")
         return []
 
-    url = (
-        f"https://api.etherscan.io/api"
-        f"?module=account&action=txlist&address={address}"
-        f"&startblock=0&endblock=99999999&sort=desc&apikey={ETHERSCAN_API_KEY}"
-    )
+    address = address.lower()
+    outgoing = []
+
+    # 1. Direct ETH Transfers
+    tx_url = f"https://api.etherscan.io/api?module=account&action=txlist&address={address}&startblock=0&endblock=99999999&sort=desc&apikey={ETHERSCAN_API_KEY}"
     
-    try:
-        res = requests.get(url, timeout=10).json()
-        status = res.get("status")
-        message = res.get("message")
-        
-        if status != "1":
-            print(f"[!] Etherscan API Response for {address[:10]}... -> Status: {status}, Message: {message}")
-            return []
-        
-        outgoing = []
-        for tx in res.get("result", []):
-            if tx["from"].lower() == address.lower() and tx["to"]:
-                val_eth = float(tx["value"]) / 1e18
-                outgoing.append({
-                    "from": tx["from"],
-                    "to": tx["to"],
-                    "value": val_eth,
-                    "hash": tx["hash"]
-                })
-            if len(outgoing) >= limit:
-                break
-        return outgoing
-    except Exception as e:
-        print(f"[!] API Request Error: {e}")
-        return []
+    # 2. Internal Smart Contract Transfers (Crucial for exploits)
+    internal_url = f"https://api.etherscan.io/api?module=account&action=txlistinternal&address={address}&startblock=0&endblock=99999999&sort=desc&apikey={ETHERSCAN_API_KEY}"
+    
+    # 3. ERC-20 Token Transfers (WETH, Stablecoins, etc.)
+    erc20_url = f"https://api.etherscan.io/api?module=account&action=tokentx&address={address}&startblock=0&endblock=99999999&sort=desc&apikey={ETHERSCAN_API_KEY}"
+
+    endpoints = [tx_url, internal_url, erc20_url]
+
+    for url in endpoints:
+        try:
+            res = requests.get(url, timeout=10).json()
+            if res.get("status") == "1":
+                for tx in res.get("result", []):
+                    # Check if transaction originated from this address
+                    if tx.get("from", "").lower() == address and tx.get("to"):
+                        # Handle token decimals dynamically or raw ETH value
+                        decimals = int(tx.get("tokenDecimal", 18))
+                        val = float(tx.get("value", 0)) / (10 ** decimals)
+                        
+                        if val > 0:
+                            outgoing.append({
+                                "from": tx["from"].lower(),
+                                "to": tx["to"].lower(),
+                                "value": val,
+                                "hash": tx.get("hash", "")
+                            })
+        except Exception as e:
+            print(f"[!] API Request Error: {e}")
+
+    return outgoing
 
 def build_multihop_graph(seed_address, max_depth=3, min_decay_ratio=0.05, min_eth_threshold=0.5):
     """
