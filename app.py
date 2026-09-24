@@ -1,8 +1,8 @@
 import os
 import json
-import asyncio
-import aiohttp
+import requests
 import networkx as nx
+from collections import deque
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,69 +16,53 @@ KNOWN_TERMINALS = {
     "0x0d0707963952f2a572d1264c7676757b85040f7b": ("Kraken Hot Wallet", "CEX"),
     "0x47ac0fb3f2d84898e4d9e7b4dab3c24507a6d503": ("Binance 8", "CEX"),
     "0xd90e2f925da726b50c4ed8d0fb90ad053324f31b": ("Tornado.Cash Router", "Mixer"),
-    "0x12d66f87a04a9e220743712ce6d9bb1b5616b8fc": ("Tornado.Cash 0.1 ETH", "Mixer"),
-    "0x47ce0c6ed5b0ce3d3a51fdb1c52dc66a7c3c2936": ("Tornado.Cash 1 ETH", "Mixer"),
-    "0x910cbd523d972eb0a6f4cae4618ad62622b39dbf": ("Tornado.Cash 10 ETH", "Mixer"),
-    "0xa160cd31f2977d856956c0a233ba68367881f2a2": ("Tornado.Cash 100 ETH", "Mixer"),
 }
 
-# --- STAGE 1: ASYNC MULTI-HOP DATA EXTRACTION ---
-
-async def fetch_endpoint(session, url):
-    """Fetch a single Etherscan endpoint asynchronously."""
-    try:
-        async with session.get(url, timeout=10) as response:
-            res = await response.json()
-            if res.get("status") == "1" and isinstance(res.get("result"), list):
-                return res.get("result", [])
-    except Exception as e:
-        print(f"[!] Async Request Exception: {e}")
-    return []
-
-async def fetch_address_transfers_async(session, address):
-    """Parallel fetching of normal, internal, and token transfers for multi-hop tracing."""
+def fetch_address_transfers(address):
+    """Synchronous fetching of transfers via Etherscan API."""
     address = address.lower()
     base_url = "https://api.etherscan.io/api"
+    transfers = []
     
-    urls = [
+    endpoints = [
         f"{base_url}?module=account&action=txlist&address={address}&startblock=0&endblock=99999999&sort=desc&apikey={ETHERSCAN_API_KEY}",
         f"{base_url}?module=account&action=txlistinternal&address={address}&startblock=0&endblock=99999999&sort=desc&apikey={ETHERSCAN_API_KEY}",
         f"{base_url}?module=account&action=tokentx&address={address}&startblock=0&endblock=99999999&sort=desc&apikey={ETHERSCAN_API_KEY}"
     ]
 
-    results = await asyncio.gather(*(fetch_endpoint(session, url) for url in urls))
-    
-    transfers = []
-    for raw_list in results:
-        for tx in raw_list:
-            f_addr = tx.get("from", "").lower()
-            t_addr = tx.get("to", "").lower()
-            
-            # Bidirectional multi-hop tracking
-            if (f_addr == address or t_addr == address) and f_addr != t_addr:
-                decimals = int(tx.get("tokenDecimal", 18) or 18)
-                val = float(tx.get("value", 0)) / (10 ** decimals)
-                
-                if val > 0:
-                    transfers.append({
-                        "from": f_addr,
-                        "to": t_addr,
-                        "value": val,
-                        "hash": tx.get("hash", "")
-                    })
+    for url in endpoints:
+        try:
+            res = requests.get(url, timeout=10).json()
+            if res.get("status") == "1" and isinstance(res.get("result"), list):
+                for tx in res["result"]:
+                    f_addr = tx.get("from", "").lower()
+                    t_addr = tx.get("to", "").lower()
+                    
+                    if (f_addr == address or t_addr == address) and f_addr != t_addr:
+                        decimals = int(tx.get("tokenDecimal", 18) or 18)
+                        raw_val = float(tx.get("value", 0))
+                        val = raw_val / (10 ** decimals) if raw_val > 0 else 0.0
+                        
+                        transfers.append({
+                            "from": f_addr,
+                            "to": t_addr,
+                            "value": val,
+                            "hash": tx.get("hash", "")
+                        })
+        except Exception as e:
+            print(f"[!] Request Exception for {address[:8]}: {e}")
+
     return transfers
 
-# --- STAGE 2: MULTI-HOP GRAPH TRAVERSAL ---
-
-async def build_multihop_graph(seed_address, max_depth=2, min_value=0.01):
+def build_bfs_graph(seed_address, max_depth=2, min_value=0.0):
+    """Standard Breadth-First Search (BFS) Traversal using Queue."""
     G = nx.DiGraph()
     seed_address = seed_address.lower()
     
-    # Queue structure: (address, depth, incoming_value)
-    queue = [(seed_address, 0, 1000.0)]
+    # BFS Queue storing tuple: (current_address, current_depth)
+    queue = deque([(seed_address, 0)])
     visited = set()
 
-    # Seed Node (Hop 0)
     G.add_node(
         seed_address, 
         depth=0, 
@@ -86,59 +70,43 @@ async def build_multihop_graph(seed_address, max_depth=2, min_value=0.01):
         category="Seed"
     )
 
-    async with aiohttp.ClientSession() as session:
-        while queue:
-            current_batch = []
-            while queue and len(current_batch) < 5:  # Batch rate control
-                node_data = queue.pop(0)
-                if node_data[0] not in visited and node_data[1] < max_depth:
-                    current_batch.append(node_data)
+    while queue:
+        curr_addr, depth = queue.popleft()
 
-            if not current_batch:
-                break
+        if curr_addr in visited or depth >= max_depth:
+            continue
 
-            tasks = [fetch_address_transfers_async(session, addr) for addr, d, v in current_batch]
-            batch_results = await asyncio.gather(*tasks)
+        visited.add(curr_addr)
+        print(f"[+] BFS Processing: {curr_addr[:8]}... at Depth {depth}")
 
-            for (curr_addr, depth, in_val), transfers in zip(current_batch, batch_results):
-                visited.add(curr_addr)
-                transfers.sort(key=lambda x: x["value"], reverse=True)
+        transfers = fetch_address_transfers(curr_addr)
 
-                for tx in transfers:
-                    src, dst, val = tx["from"], tx["to"], tx["value"]
-                    
-                    if val < min_value:
-                        continue
+        for tx in transfers[:10]:  # Cap to prevent excessive fan-out
+            src, dst, val = tx["from"], tx["to"], tx["value"]
+            
+            if val < min_value:
+                continue
 
-                    # Check Terminal Integrations
-                    if dst in KNOWN_TERMINALS:
-                        term_label, term_cat = KNOWN_TERMINALS[dst]
-                        G.add_node(dst, depth=depth+1, label=term_label, category=term_cat)
-                        G.add_edge(src, dst, weight=val, hash=tx["hash"])
-                        continue
+            target_node = dst if src == curr_addr else src
+            dst_depth = depth + 1
 
-                    # Multi-Hop Depth Labeling
-                    dst_depth = depth + 1
-                    hop_label = f"Hop {dst_depth} Node"
-                    
-                    if dst not in G:
-                        G.add_node(
-                            dst, 
-                            depth=dst_depth, 
-                            label=f"{hop_label} ({dst[:6]}...)", 
-                            category=f"Hop{dst_depth}"
-                        )
-                    
-                    G.add_edge(src, dst, weight=val, hash=tx["hash"])
+            if target_node in KNOWN_TERMINALS:
+                term_label, term_cat = KNOWN_TERMINALS[target_node]
+                G.add_node(target_node, depth=dst_depth, label=term_label, category=term_cat)
+            elif target_node not in G:
+                G.add_node(
+                    target_node, 
+                    depth=dst_depth, 
+                    label=f"Hop {dst_depth} ({target_node[:6]}...)", 
+                    category=f"Hop{dst_depth}"
+                )
+            
+            G.add_edge(src, dst, weight=val, hash=tx["hash"])
 
-                    if dst not in visited and dst_depth < max_depth:
-                        queue.append((dst, dst_depth, val))
-
-            await asyncio.sleep(0.35)
+            if target_node not in visited and dst_depth < max_depth:
+                queue.append((target_node, dst_depth))
 
     return G
-
-# --- STAGE 3: VISUALIZATION RENDERER ---
 
 def render_html_graph(G, filename="fund_flow_graph.html"):
     nodes = []
@@ -146,15 +114,14 @@ def render_html_graph(G, filename="fund_flow_graph.html"):
         depth = data.get("depth", 0)
         label = data.get("label", f"{node[:6]}...{node[-4:]}")
         
-        # Color coding matching original UI layout
         if depth == 0:
-            color = "#FF4B4B"  # Seed Scam Node (Red)
+            color = "#FF4B4B"
         elif depth == 1:
-            color = "#FFC107"  # Hop 1 Node (Amber/Yellow)
+            color = "#FFC107"
         elif depth == 2:
-            color = "#00C0F2"  # Hop 2 Node (Blue)
+            color = "#00C0F2"
         else:
-            color = "#00E676"  # Hop 3+ / Terminal Node (Green)
+            color = "#00E676"
 
         nodes.append({
             "id": node,
@@ -210,9 +177,9 @@ def render_html_graph(G, filename="fund_flow_graph.html"):
 
     with open(filename, "w") as f:
         f.write(html)
-    print(f"[✓] Generated graph at '{filename}'")
+    print(f"[✓] Generated graph at '{filename}' with {len(G.nodes())} nodes and {len(G.edges())} edges.")
 
 if __name__ == "__main__":
-    print("[+] Executing ChainSink Multi-Hop Tracer Engine...")
-    graph = asyncio.run(build_multihop_graph(SEED_SCAM_ADDRESS, max_depth=2, min_value=0.01))
+    print("[+] Running ChainSink BFS Traversal...")
+    graph = build_bfs_graph(SEED_SCAM_ADDRESS, max_depth=2, min_value=0.0)
     render_html_graph(graph)
