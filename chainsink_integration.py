@@ -174,7 +174,18 @@ if __name__ == "__main__":
     print("=================================================================\n")
 
     # 1. Prompt User for File Path
+   # 1. Prompt User for File Path
     file_path = input("Enter path to your dataset file (.csv or .parquet): ").strip()
+    
+    # Strip quotes if dragged & dropped into terminal
+    file_path = file_path.strip("'\"")
+    
+    # Expand ~ to /home/username automatically
+    file_path = os.path.expanduser(file_path)
+
+    if not os.path.exists(file_path):
+        print(f"Error: File '{file_path}' not found at absolute path: {os.path.abspath(file_path)}")
+        exit(1)
     
     if not os.path.exists(file_path):
         print(f"Error: File '{file_path}' not found.")
