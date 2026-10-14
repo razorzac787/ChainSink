@@ -109,6 +109,6 @@ ChainSink organizes its end-to-end architecture into four execution layers:
 1. **Chen, Y., et al. (2025).** *A Graph-Based Approach to Blockchain Fraud Prevention.* arXiv preprint arXiv:2505.24284. [https://arxiv.org/pdf/2505.24284](https://arxiv.org/pdf/2505.24284)
 2. **Wu, J., et al. (2023).** *Towards Understanding Crypto Money Laundering in Web3: Heuristic Transaction Tracing and Empirical Analysis.* arXiv preprint arXiv:2305.14748. [https://arxiv.org/pdf/2305.14748](https://arxiv.org/pdf/2305.14748)
 3. **Lin, H., et al. (2026).** *BlazingAML: High-Throughput Anti-Money Laundering System via Graph Pattern Mining.* arXiv preprint arXiv:2604.12241. [https://arxiv.org/pdf/2604.12241](https://arxiv.org/pdf/2604.12241)
-## References
+
 
 
