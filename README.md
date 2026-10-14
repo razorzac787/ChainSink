@@ -1,57 +1,67 @@
-# ChainSink: Automated Multi-Hop Blockchain Forensics & Exchange Attribution Pipeline
+# ChainSink: Automated Multi-Hop Blockchain Forensics & On-Chain Compliance Pipeline
 
-**ChainSink** is a modular, high-throughput blockchain forensics system designed to trace illicit crypto fund flows from victim-reported scam addresses, uncover hidden peel chains, and attribute terminal deposit nodes to Centralized Exchanges (CEXs). 
+**ChainSink** is a modular, high-throughput blockchain forensics system designed to trace illicit crypto fund flows from victim-reported scam addresses, uncover hidden peel chains, calculate proximity risk metrics, and settle verified compliance states on-chain via smart contracts.
 
-By combining standard Python graph traversal with a high-performance **parallel C++ engine (`blazing_aml.cpp`)**, ChainSink eliminates execution bottlenecks and achieves real-time topology detection without machine learning overhead.
+By combining standard Python graph processing with a high-performance parallel C++ engine (blazing_aml.cpp), a defensive Universal Dataset Ingestion Wizard, and an Optimistic STM Smart Contract Registry, ChainSink eliminates analysis bottlenecks and enables programmatic, low-gas compliance verification.
 
 ## Problem Statement
 
-Social engineering attacks, phishing, and advance fee fraud schemes are key challenges faced by crypto asset holders. Fraudsters utilize ledger anonymity to quickly move hacked money through peel chains of wallets and decentralized liquidity pools into liquidation through centralized cryptocurrency exchanges (CEXs). Current blocklists are reactionary measures and fail to capture rapid movement of stolen crypto until it reaches CEXs where the money is withdrawn.
+Social engineering attacks, phishing, and advance fee fraud schemes present ongoing threats to crypto asset holders. Fraudsters leverage blockchain pseudo-anonymity to rapidly move stolen funds through complex peel chains, mixers, and decentralized liquidity pools before withdrawing through Centralized Exchanges (CEXs). Traditional blocklists operate reactively and fail to track dynamic multi-hop flows. Furthermore, off-chain forensic tools lack an immutable, gas-efficient mechanism to publish and verify risk scores directly on-chain for smart contracts and protocols to act upon automatically.
 
 ## Project Objectives
 
-1. **Automate Scam Ingestion:** Build an OSINT ingestion pipeline to continuously ingest victim-reported suspect wallet addresses from public repositories (e.g., Chainabuse, CryptoScamDB).
+1. **Defensive Dataset Ingestion Wizard:** Provide a interactive schema-mapping ingestion wizard that accepts open datasets (e.g., Elliptic2, raw UTXO dumps, custom CSV/Parquet files) with built-in sanitization to protect against file corruption, invalid binary uploads, and null identifiers
 
-2. **Multi-Hop Graph Traversal (`multihop_engine.py`):** Develop a directed graph engine using Python `NetworkX` querying Web3 APIs (e.g., Etherscan) to build dynamic transaction trees and trace outgoing fund flows up to $N$-hops deep.
+2. **Deterministic Clustering & Heuristics (heuristic_analyzer.py):** Implement rule-based on-chain clustering logic—including multi-input co-spending aggregation and change address reuse detection—to group connected wallet addresses into unified entity clusters (Pillar 1).
 
-3. **Deterministic Clustering & Heuristics (`heuristic_analyzer.py`):** Implement rule-based on-chain clustering logic—including multi-input co-spending aggregation and intermediate deposit address reuse detection—to group connected wallet addresses into unified entity clusters.
+3. **High-Throughput Pattern Mining (blazing_aml.cpp):** Adapt the BlazingAML architecture into a native C++ parallel compute module using multi-threading (OpenMP / native thread pools) to scan large transaction graphs for structural money laundering patterns (Scatter-Gather, Cycles, Fan-In/Fan-Out) across Placement, Layering, and Integration stages without performance bottlenecks (Pillar 2).
 
-4. **High-Throughput Pattern Mining (`blazing_aml.cpp`):** Adapt the BlazingAML architecture into a native C++ parallel compute module using multi-threading (OpenMP / native threads) to scan large transaction graphs for complex typologies (Scatter-Gather, Cycles, Fan-In/Fan-Out) across Placement, Layering, and Integration stages without performance bottlenecks.
+4. **Proximity-Based Path Scoring (multihop_engine.py):** Compute shortest-path distance decay scores $D(v, E) = \max\left(0, 100 \times 0.5^{\text{hops}}\right)$ from target nodes $v$ to known illicit seed entities $E$ to quantify compliance risk (Pillar 3).
 
-5. **Exchange Attribution:** Map destination sink nodes against labeled centralized exchange (CEX) deposit wallets (e.g., Binance, Coinbase) to calculate proximity distance $D(v, E)$ and pinpoint cash-out endpoints.
+5. **On-Chain Settlement & Merkle Verification (compliance_registry.py):** Commit computed compliance states and 32-byte global Merkle roots to an on-chain smart contract layer driven by an Optimistic Software Transactional Memory (STM) execution engine for concurrent state updates and low-gas client proof verification.
 
-6. **Interactive Dashboard:** Build a real-time web UI using Streamlit and PyVis to visualize fund-flow paths, render network sub-graphs, and provide interactive node analytics for forensic investigation.
+6. **Interactive Visual Dashboard:** Build a web interface using Streamlit and PyVis to render dynamic network sub-graphs, trace path proximity, inspect entity risk profiles, and export automated audit reports.
 
-7. **Validate Performance & Backtest:** Evaluate system recall and benchmark performance runtime (comparing C++ parallel graph processing against standard Python sequential traversal) across historical ground-truth scam datasets.
+7. **Validate Performance & Backtest:** Evaluate recall and benchmark runtime performance across historical datasets (such as Elliptic2), comparing multi-threaded C++ graph processing against baseline Python execution and measuring optimistic STM state contention.
 
 ## Key Features & Architecture
 
-ChainSink isolates its detection pipeline into three specialized, decoupled execution modules:
+ChainSink organizes its end-to-end architecture into four execution layers:
 
-* **`multihop_engine.py` (Graph Traversal Engine):** Handles API queries (e.g., Etherscan) to construct dynamic $N$-hop directed transaction graphs representing outgoing fund flows.
-* **`heuristic_analyzer.py` (On-Chain Heuristic Engine):** Applies deterministic clustering logic, including co-spending aggregation and intermediate deposit address reuse detection.
-* **`blazing_aml.cpp` (High-Throughput C++ Core):** A parallelized C++ pattern-mining engine (powered by OpenMP / native threads) that processes high-volume graph structures (Placement, Layering, Integration) at bare-metal performance speeds.
+**Ingestion & Sanitization Wizard:** Handles file validation (magic byte checks, format parsing) and dynamic user schema mapping to standardize raw input files into internal entity graph structures.
+
+**Pillar 1 — Heuristic Clustering Engine (heuristic_analyzer.py):** Executes deterministic multi-input co-spending and change-address heuristics to map raw cryptographic addresses into unified entity clusters.
+
+**Pillar 2 — High-Throughput C++ Topology Core (blazing_aml.cpp):** A multi-threaded C++ pattern-mining engine that traverses directed transaction graphs to detect cycles, peel chains, and complex mixing topographies at bare-metal speeds.
+
+**Pillar 3 — EAI Proximity Engine (multihop_engine.py):** Calculates direct directed path hop counts and applies exponential distance-decay functions to determine compliance risk scores.
+
+**Smart Contract Layer (compliance_registry.py):** Settles off-chain forensic results on-chain via update_eai_status, update_proximity_merkle_root, and enables low-gas client verification via verify_proximity_proof.
 
 ## System Architecture
 
 ```
-[ OSINT Repository ] (Chainabuse / CryptoScamDB)
+[ Ingested Dataset ] (Elliptic2 / UTXO Dumps / Custom CSV)
          │
          ▼
-[ Ingestion Pipeline ] Automated Ingestion of Victim-Reported Seed Addresses
+[ Ingestion Wizard ] Pre-Parse Validation, Schema Alignment, & Defensive Sanitization
          │
          ▼
-[ Directed Graph Traversal ] NetworkX + Web3 APIs (multihop_engine.py)
-         │
-         ├────► [ Heuristic Engine ] Co-Spending & Deposit Reuse Logic (heuristic_analyzer.py)
-         │
-         ├────► [ Parallel Pattern Mining ] Multi-Threaded C++ Core (blazing_aml.cpp)
+[ Pillar 1: Heuristic Engine ] Co-Spending & Address Clustering (heuristic_analyzer.py)
          │
          ▼
-[ Sink Attribution Engine ] Terminal Node Mapping to Exchange Deposit Labels
+[ Pillar 2: BlazingAML Core ] Multi-Threaded C++ Pattern Mining (blazing_aml.cpp)
          │
          ▼
-[ Visual Analytics Dashboard ] Streamlit + PyVis Real-Time Interactive UI
+[ Pillar 3: EAI Proximity Engine ] Shortest Path Scoring D(v, E) (multihop_engine.py)
+         │
+         ├───► [ Visual Dashboard ] Interactive PyVis Network Visualizer & Risk Inspector
+         │
+         ▼
+[ Smart Contract Registry ] On-Chain State Settlement via Optimistic STM Engine
+  ├── update_eai_status()            ──► Updates entity risk flags
+  ├── update_proximity_merkle_root() ──► Commits 32-byte Merkle root
+  └── verify_proximity_proof()       ──► Low-gas client proof verification
 ```
 
 ---
@@ -60,36 +70,37 @@ ChainSink isolates its detection pipeline into three specialized, decoupled exec
 
 | Layer | Component / Tool |
 | :--- | :--- |
-| **Languages** | C++17 / C++20, Python 3.10+ |
-| **Parallel Compute Engine** | C++ (`blazing_aml.cpp`), OpenMP / Thread Pools |
-| **Graph Traversal & Analysis** | NetworkX (`multihop_engine.py`), Pandas, NumPy |
-| **Heuristics & Clustering** | Python (`heuristic_analyzer.py`) |
+| **Languages** |C++17 / C++20, Python 3.10+ |
+| **Parallel Compute Engine** | C++ (blazing_aml.cpp), OpenMP / Native Thread Pools |
+| **Graph Traversal & Analysis** | NetworkX (multihop_engine.py), Pandas, NumPy |
+| **Heuristics & Clustering** | Python (heuristic_analyzer.py) |
+| **Smart Contract Layer** | Python Driver (compliance_registry.py), Optimistic STM Engine |
 | **UI & Visual Analytics** | Streamlit, PyVis |
-| **Data Sources & APIs** | Etherscan REST API, Web3.py, Chainabuse, CryptoScamDB |
+| **Datasets & Schemes** | Elliptic1 / Elliptic2, BitcoinHeist, Raw UTXO Exports, CryptoScamDB |
 
 ---
 
 ## Project Roadmap & Deliverables
 
-### Phase 1: Ingestion & Core Traversal Engine
-- [x] **Automated Scam Ingestion Pipeline:** Continuous ingest of victim-reported addresses from OSINT repos.
-- [x] **Multi-Hop Traversal Engine (`multihop_engine.py`):** Directed $N$-hop graph traversal using NetworkX and Web3 block explorer APIs.
-- [x] **Visual Analytics Prototype:** Initial interactive HTML/JS graph generation via PyVis.
+### Phase 1: Ingestion Wizard & Heuristic Foundation
+- [x] Defensive Ingestion Engine: Pre-parse validation, magic byte checking, structural sanitization, and row-error coercion.
+- [x] Dynamic Schema Alignment: Streamlit modal for mapping custom file headers to standard graph inputs (source, target, amount, timestamp).
+- [x] Pillar 1 Address Clustering: Multi-input co-spending and address aggregation module
 
 ### Phase 2: High-Performance Parallel Processing & Heuristic Mining
-- [ ] **Heuristic Analysis Engine (`heuristic_analyzer.py`):**
-  - Deterministic co-spending input aggregation.
-  - Intermediate deposit address reuse detection across transactions.
-- [ ] **BlazingAML C++ Core (`blazing_aml.cpp`):**
-  - High-throughput parallel graph pattern mining (Scatter-Gather, Cycles, Fan-In/Fan-Out).
-  - OpenMP-accelerated multi-threading for fast evaluation across Placement, Layering, and Integration stages.
-- [ ] **Exchange Attribution Engine:**
-  - Sink node mapping against known exchange wallet labels (Binance, Coinbase, etc.).
-  - Distance-to-Exchange proximity calculation $D(v, E)$.
+- [ ] **BlazingAML C++ Core (blazing_aml.cpp):**
+   - Multi-threaded parallel graph pattern mining (Cycles, Fan-In/Fan-Out, Peel Chains).
+   - OpenMP acceleration for sub-second execution over multi-million-edge graphs
+- [ ] **Pillar 3 Proximity Engine (multihop_engine.py):**
+  - Shortest-path calculations from target entities to illicit seed clusters E.
+  - Distance-decay metric calculation $D(v, E) = 100 x 0.5^{hops}
 
-### Phase 3: Integration, Dashboard & Benchmarking
-- [ ] **Unified Interactive Dashboard:** Streamlit UI integrating real-time depth controls, graph rendering, and address analytics.
-- [ ] **Performance Backtesting:** Benchmark execution speeds (C++ parallel core vs. Python baseline traversal) and calculate recall against labeled ground-truth scam datasets.
+### On-Chain Settlement, UI & Benchmarking
+- [ ] **On-Chain Compliance Registry (compliance_registry.py):**
+   - Optimistic STM driver integration for concurrent update_eai_status and update_proximity_merkle_root calls.
+   - Merkle tree construction and verify_proximity_proof verification functions.
+- [ ] **Unified Interactive Dashboard:** Streamlit UI with graph rendering, address search, and PDF audit report generation.
+- [ ] **Performance Backtesting:** Benchmark execution runtime (C++ parallel core vs. Python sequential traversal) and evaluate STM conflict contention under high-throughput batch updates.
 
 ---
 
