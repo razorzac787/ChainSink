@@ -167,46 +167,66 @@ class ChainSinkForensicEngine:
 # 3. VERIFICATION & TEST DRIVE
 # =============================================================================
 if __name__ == "__main__":
+    import os
+
     print("=================================================================")
-    print("    CHAINSINK FORENSIC PIPELINE - INTEGRATION TEST RUN           ")
+    print("    CHAINSINK FORENSIC PIPELINE - INTERACTIVE DATASET RUN        ")
     print("=================================================================\n")
 
-    # Sample mock dataset representing raw ingested CSV content
-    sample_csv_data = """src_wallet,dst_wallet,btc_val,time_step,tx_id
-    0xUserA,0xUserB,1.5,100,tx_01
-    0xUserB,0xUserC,1.4,101,tx_02
-    ScamSeed_1,0xUserA,5.0,99,tx_00
-    0xUserC,0xUserD,1.2,102,tx_03
-    0xCorrupt,NaN,0.0,103,tx_04
-    """
+    # 1. Prompt User for File Path
+    file_path = input("Enter path to your dataset file (.csv or .parquet): ").strip()
+    
+    if not os.path.exists(file_path):
+        print(f"Error: File '{file_path}' not found.")
+        exit(1)
 
-    # 1. Ingestion Check
-    file_bytes = sample_csv_data.encode('utf-8')
-    valid, msg, raw_df = DatasetIngestionEngine.validate_and_load(file_bytes, "test_dataset.csv")
-    print(f"Ingestion Check: {msg}")
+    with open(file_path, "rb") as f:
+        file_bytes = f.read()
 
-    # 2. Schema Normalization
+    # 2. Ingest and Validate
+    valid, msg, raw_df = DatasetIngestionEngine.validate_and_load(file_bytes, file_path)
+    if not valid:
+        print(f"Ingestion Error: {msg}")
+        exit(1)
+
+    print(f"\nDataset loaded successfully! Total rows: {len(raw_df)}")
+    print("Available columns in your file:", list(raw_df.columns))
+    print("-" * 65)
+
+    # 3. Interactive Column Mapping
+    print("Please map your dataset columns to ChainSink standard fields:")
+    src_col = input(f"Source Entity column name (e.g. {raw_df.columns[0]}): ").strip()
+    dst_col = input(f"Target Entity column name (e.g. {raw_df.columns[1]}): ").strip()
+    amt_col = input("Amount column name: ").strip()
+    ts_col  = input("Timestamp/Block column name: ").strip()
+    tx_col  = input("Tx Hash column name (Press Enter to skip): ").strip() or None
+
     column_mapping = {
-        "source": "src_wallet",
-        "target": "dst_wallet",
-        "amount": "btc_val",
-        "timestamp": "time_step",
-        "tx_hash": "tx_id"
+        "source": src_col,
+        "target": dst_col,
+        "amount": amt_col,
+        "timestamp": ts_col,
+        "tx_hash": tx_col
     }
-    clean_df, stats = DatasetIngestionEngine.normalize_schema(raw_df, column_mapping)
-    print(f"Sanitization Stats: Ingested {stats['total_rows']} rows, Cleaned: {stats['cleaned_rows']}, Dropped Bad Rows: {stats['dropped_rows']}")
 
-    # 3. Run Pipeline Pillars
+    # 4. Prompt for Seed Addresses
+    seed_input = input("\nEnter known scam seed addresses (comma-separated): ").strip()
+    scam_seeds = [s.strip() for s in seed_input.split(",") if s.strip()]
+
+    # 5. Execute Pipeline
+    clean_df, stats = DatasetIngestionEngine.normalize_schema(raw_df, column_mapping)
+    print(f"\nSanitization Complete: Cleaned {stats['cleaned_rows']} rows, dropped {stats['dropped_rows']} invalid rows.")
+
     engine = ChainSinkForensicEngine()
-    engine.set_scam_seeds(["ScamSeed_1"])
+    engine.set_scam_seeds(scam_seeds)
     engine.run_pillar_1_heuristics(clean_df)
     engine.run_pillar_2_topology_mining(clean_df)
     results = engine.run_pillar_3_proximity_scoring()
 
-    # 4. Display Results
+    # 6. Display Results
     print("\nCalculated Entity Proximity & Compliance Risk Scores:")
     print("-" * 65)
-    print(f"{'Entity':<12} | {'Hop Distance D(v,E)':<20} | {'Nearest Seed':<12} | {'Risk Score':<10}")
+    print(f"{'Entity':<20} | {'Hop Distance':<12} | {'Nearest Seed':<15} | {'Risk Score':<10}")
     print("-" * 65)
-    for entity, metrics in results.items():
-        print(f"{entity:<12} | {metrics['shortest_hop_distance']:<20} | {str(metrics['nearest_scam_seed']):<12} | {metrics['proximity_risk_score']:<10}")
+    for entity, metrics in list(results.items())[:20]: # Show first 20
+        print(f"{str(entity):<20} | {metrics['shortest_hop_distance']:<12} | {str(metrics['nearest_scam_seed']):<15} | {metrics['proximity_risk_score']:<10}")
