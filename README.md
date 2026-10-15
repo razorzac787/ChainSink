@@ -2,7 +2,7 @@
 
 **ChainSink** is a modular, high-throughput blockchain forensics system designed to trace illicit crypto fund flows from victim-reported scam addresses, uncover hidden peel chains, calculate proximity risk metrics, and settle verified compliance states on-chain via smart contracts.
 
-By combining standard Python graph processing with a high-performance parallel C++ engine (blazing_aml.cpp), a defensive Universal Dataset Ingestion Wizard, and an Optimistic STM Smart Contract Registry, ChainSink eliminates analysis bottlenecks and enables programmatic, low-gas compliance verification.
+By combining standard Python graph processing with a high-performance parallel engine, a defensive Universal Dataset Ingestion Wizard, and an Optimistic STM Smart Contract Registry, ChainSink eliminates analysis bottlenecks and enables programmatic, low-gas compliance verification.
 
 ## Problem Statement
 
