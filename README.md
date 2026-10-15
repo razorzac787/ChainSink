@@ -32,7 +32,7 @@ ChainSink organizes its end-to-end architecture into four execution layers:
 
 **Pillar 1 — Heuristic Clustering Engine (heuristic_analyzer.py):** Executes deterministic multi-input co-spending and change-address heuristics to map raw cryptographic addresses into unified entity clusters.
 
-**Pillar 2 — High-Throughput C++ Topology Core (blazing_aml.cpp):** A multi-threaded C++ pattern-mining engine that traverses directed transaction graphs to detect cycles, peel chains, and complex mixing topographies at bare-metal speeds.
+**Pillar 2 — High-Throughput Topology Core (blazing_aml.cpp):** A multi-threaded python pattern-mining engine that traverses directed transaction graphs to detect cycles, peel chains, and complex mixing topographies at bare-metal speeds.
 
 **Pillar 3 — EAI Proximity Engine (multihop_engine.py):** Calculates direct directed path hop counts and applies exponential distance-decay functions to determine compliance risk scores.
 
