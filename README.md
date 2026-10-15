@@ -10,15 +10,15 @@ Social engineering attacks, phishing, and advance fee fraud schemes present ongo
 
 ## Project Objectives
 
-1. **Defensive Dataset Ingestion Wizard:** Provide a interactive schema-mapping ingestion wizard that accepts open datasets (e.g., Elliptic2, raw UTXO dumps, custom CSV/Parquet files) with built-in sanitization to protect against file corruption, invalid binary uploads, and null identifiers
+1. **Defensive Dataset Ingestion Wizard:** Provide an interactive schema-mapping ingestion wizard that accepts open datasets (e.g., Elliptic2, raw UTXO dumps, custom CSV/Parquet files) with built-in sanitization to protect against file corruption, invalid binary uploads, and null identifiers
 
-2. **Deterministic Clustering & Heuristics (heuristic_analyzer.py):** Implement rule-based on-chain clustering logic—including multi-input co-spending aggregation and change address reuse detection—to group connected wallet addresses into unified entity clusters (Pillar 1).
+2. **Deterministic Clustering & Heuristics:** Implement rule-based on-chain clustering logic—including multi-input co-spending aggregation and change address reuse detection—to group connected wallet addresses into unified entity clusters (Pillar 1).
 
-3. **High-Throughput Pattern Mining (blazing_aml.cpp):** Adapt the BlazingAML architecture into a native C++ parallel compute module using multi-threading (OpenMP / native thread pools) to scan large transaction graphs for structural money laundering patterns (Scatter-Gather, Cycles, Fan-In/Fan-Out) across Placement, Layering, and Integration stages without performance bottlenecks (Pillar 2).
+3. **High-Throughput Pattern Mining:** Adapt the BlazingAML architecture into a native C++ parallel compute module using multi-threading (OpenMP / native thread pools) to scan large transaction graphs for structural money laundering patterns (Scatter-Gather, Cycles, Fan-In/Fan-Out) across Placement, Layering, and Integration stages without performance bottlenecks (Pillar 2).
 
-4. **Proximity-Based Path Scoring (multihop_engine.py):** Compute shortest-path distance decay scores $D(v, E) = \max\left(0, 100 \times 0.5^{\text{hops}}\right)$ from target nodes $v$ to known illicit seed entities $E$ to quantify compliance risk (Pillar 3).
+4. **Proximity-Based Path Scoring:** Compute shortest-path distance decay scores $D(v, E) = \max\left(0, 100 \times 0.5^{\text{hops}}\right)$ from target nodes $v$ to known illicit seed entities $E$ to quantify compliance risk (Pillar 3).
 
-5. **On-Chain Settlement & Merkle Verification (compliance_registry.py):** Commit computed compliance states and 32-byte global Merkle roots to an on-chain smart contract layer driven by an Optimistic Software Transactional Memory (STM) execution engine for concurrent state updates and low-gas client proof verification.
+5. **On-Chain Settlement & Merkle Verification (compliance_registry.py:** Commit computed compliance states and 32-byte global Merkle roots to an on-chain smart contract layer driven by an Optimistic Software Transactional Memory (STM) execution engine for concurrent state updates and low-gas client proof verification.
 
 6. **Interactive Visual Dashboard:** Build a web interface using Streamlit and PyVis to render dynamic network sub-graphs, trace path proximity, inspect entity risk profiles, and export automated audit reports.
 
@@ -47,13 +47,13 @@ ChainSink organizes its end-to-end architecture into four execution layers:
 [ Ingestion Wizard ] Pre-Parse Validation, Schema Alignment, & Defensive Sanitization
          │
          ▼
-[ Pillar 1: Heuristic Engine ] Co-Spending & Address Clustering (heuristic_analyzer.py)
+[ Pillar 1: Heuristic Engine ] Co-Spending & Address Clustering 
          │
          ▼
-[ Pillar 2: BlazingAML Core ] Multi-Threaded C++ Pattern Mining (blazing_aml.cpp)
+[ Pillar 2: BlazingAML Core ] Multi-Threaded C++ Pattern Mining 
          │
          ▼
-[ Pillar 3: EAI Proximity Engine ] Shortest Path Scoring D(v, E) (multihop_engine.py)
+[ Pillar 3: EAI Proximity Engine ] Shortest Path Scoring D(v, E) 
          │
          ├───► [ Visual Dashboard ] Interactive PyVis Network Visualizer & Risk Inspector
          │
@@ -68,16 +68,14 @@ ChainSink organizes its end-to-end architecture into four execution layers:
 
 ## Technology Stack
 
-| Layer | Component / Tool |
-| :--- | :--- |
-| **Languages** |C++17 / C++20, Python 3.10+ |
-| **Parallel Compute Engine** | C++ (blazing_aml.cpp), OpenMP / Native Thread Pools |
-| **Graph Traversal & Analysis** | NetworkX (multihop_engine.py), Pandas, NumPy |
-| **Heuristics & Clustering** | Python (heuristic_analyzer.py) |
-| **Smart Contract Layer** | Python Driver (compliance_registry.py), Optimistic STM Engine |
-| **UI & Visual Analytics** | Streamlit, PyVis |
-| **Datasets & Schemes** | Elliptic1 / Elliptic2, BitcoinHeist, Raw UTXO Exports, CryptoScamDB |
-
+| Layer | Component / Tool | Location in Code |
+| :--- | :--- | :--- |
+| **Ingestion & Wizard** | Pandas, BytesIO, Schema Mapper | `DatasetIngestionEngine` |
+| **Heuristics & Clustering** | Python Entity Grouping | `ChainSinkForensicEngine.run_pillar_1_heuristics` |
+| **Pattern Mining** | NetworkX Graph Engine | `ChainSinkForensicEngine.run_pillar_2_topology_mining` |
+| **Proximity Scoring** | Exponential Distance Decay $D(v,E)$ | `ChainSinkForensicEngine.run_pillar_3_proximity_scoring` |
+| **Smart Contract Registry** | Optimistic STM Engine & Merkle Trees | `ComplianceRegistryContract` |
+| **UI & Visual Analytics** | Streamlit, PyVis | Terminal CLI / `app.py` |
 ---
 
 ## Project Roadmap & Deliverables
@@ -88,7 +86,7 @@ ChainSink organizes its end-to-end architecture into four execution layers:
 - [x] Pillar 1 Address Clustering: Multi-input co-spending and address aggregation module
 
 ### Phase 2: High-Performance Parallel Processing & Heuristic Mining
-- [ ] **BlazingAML C++ Core (blazing_aml.cpp):**
+- [ ] **BlazingAML (Python Core)**
    - Multi-threaded parallel graph pattern mining (Cycles, Fan-In/Fan-Out, Peel Chains).
    - OpenMP acceleration for sub-second execution over multi-million-edge graphs
 - [ ] **Pillar 3 Proximity Engine (multihop_engine.py):**
