@@ -48,43 +48,45 @@ if df is not None:
             
         st.dataframe(filtered_df[['entity', 'hops_to_seed', 'proximity_risk', 'patterns']], height=450, use_container_width=True)
 
-   with right_col:
+  with right_col:
         st.subheader("🕸️ Interactive Graph Visualization")
         
         G = nx.DiGraph()
         
-        # Select a mix of Seed nodes (Hop 0) AND Multi-Hop targets (Hop > 0)
-        seeds_sample = df[df[hops_col] == 0].head(10)
-        targets_sample = df[df[hops_col] > 0].head(40)
+        # Select seeds (Hop 0) and multi-hop targets (Hop > 0)
+        seeds_sample = df[df[hops_col] == 0].head(5)
+        targets_sample = df[df[hops_col] > 0].head(25)
         sample_df = pd.concat([seeds_sample, targets_sample])
         
         for _, row in sample_df.iterrows():
-            entity = row['entity']
-            seed = row.get('nearest_seed', None)
+            entity = str(row['entity']).split(' ')[0]  # Clean off any (+count) suffix
+            seed = str(row.get('nearest_seed', '')).split(' ')[0]
             risk = row.get(risk_col, 0)
             hops = row.get(hops_col, 0)
             
-            # Node ID label
-            node_id = str(entity)[:8] + "..."
+            node_id = entity[:10] + "..."
             
-            # Color palette: Seed (Red), 1-Hop (Orange), Multi-Hop (Grey)
+            # Color palette
             if hops == 0:
-                node_color = "#FF4B4B"  # Red
+                node_color = "#FF4B4B"  # Red for seeds
             elif hops == 1:
-                node_color = "#FFA500"  # Orange
+                node_color = "#FFA500"  # Orange for 1-hop
             else:
-                node_color = "#888888"  # Grey
+                node_color = "#999999"  # Light grey for multi-hop
                 
             G.add_node(node_id, title=f"Address: {entity}\nHops: {hops}\nRisk: {risk}%", color=node_color)
             
-            # Draw connecting directional edge from the nearest seed to the target node
-            if pd.notnull(seed) and str(seed) != str(entity):
-                seed_id = str(seed)[:8] + "..."
-                G.add_node(seed_id, title=f"Seed Address: {seed}\nHops: 0\nRisk: 100%", color="#FF4B4B")
-                G.add_edge(seed_id, node_id)
+            # Draw explicit, visible connecting edge to seed
+            if seed and seed != 'nan' and seed != entity:
+                seed_id = seed[:10] + "..."
+                G.add_node(seed_id, title=f"Seed: {seed}", color="#FF4B4B")
+                G.add_edge(seed_id, node_id, color="#888888", weight=2)  # Bright visible edge
 
         net = Network(height="450px", width="100%", directed=True, bgcolor="#111111", font_color="white")
         net.from_nx(G)
+        
+        # Force physics layout so nodes pull together along edges
+        net.toggle_physics(True)
         net.save_graph("network.html")
         
         with open("network.html", 'r', encoding='utf-8') as f:
